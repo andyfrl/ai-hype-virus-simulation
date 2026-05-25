@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Hype Virus — Solar System Outbreak</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { background: #000; overflow: hidden; font-family: monospace; }
+      canvas { display: block; }
+      #hud {
+        position: fixed; top: 12px; left: 12px; color: #0f0;
+        font-size: 13px; line-height: 1.6; text-shadow: 0 0 6px #0f0;
+        pointer-events: none;
+      }
+      #hud .warn { color: #f80; text-shadow: 0 0 6px #f80; }
+      #hud .danger { color: #f00; text-shadow: 0 0 6px #f00; }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <div id="hud"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
