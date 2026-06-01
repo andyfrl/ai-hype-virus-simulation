@@ -105,6 +105,7 @@ export function createInitialState(width: number, height: number): GameState {
     width,
     height,
     auScale: 1,
+    rocketLocked: true,
   };
 }
 
@@ -126,12 +127,12 @@ function updatePlanet(planet: Planet, sunPos: Vec2): Planet {
 
 // ── Rocket state machine ──────────────────────────────────────────────────────
 
-function updateRocket(rocket: Rocket, earth: Planet, mars: Planet, tick: number): Rocket {
+function updateRocket(rocket: Rocket, earth: Planet, mars: Planet, tick: number, locked: boolean): Rocket {
   const updated = { ...rocket, exhaustTimer: rocket.exhaustTimer + 1 };
 
   if (rocket.phase === 0) {
-    // Idle on Earth — launch after 200 ticks
-    if (tick > 200) {
+    // Idle on Earth — launch after 200 ticks (skipped when locked)
+    if (!locked && tick > 200) {
       return { ...updated, phase: 1, pos: { ...earth.screenPos } };
     }
     return { ...updated, pos: { ...earth.screenPos } };
@@ -330,7 +331,7 @@ export function stepState(state: GameState): GameState {
   const earth = updatePlanet(rawEarth, state.sunPos);
   const mars  = updatePlanet(rawMars,  state.sunPos);
 
-  const rocket = updateRocket(state.rocket, earth, mars, state.tick);
+  const rocket = updateRocket(state.rocket, earth, mars, state.tick, state.rocketLocked);
 
   const [infEarth, infMars] = updateInfection([earth, mars], rocket, state.tick);
 

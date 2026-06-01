@@ -86,4 +86,23 @@ export interface GameState {
   height: number;
   /** Projection scale – AU to pixels */
   auScale: number;
+  /** When true the rocket never launches */
+  rocketLocked: boolean;
+}
+
+// ── UI / interaction state (not part of simulation) ───────────────────────────
+
+export interface UIState {
+  /** Currently selected planet, or null */
+  selectedPlanet: 'earth' | 'mars' | null;
+  /** True while mouse button is held on the large planet */
+  isDragging: boolean;
+  /** True once the drag has moved > 4px (suppresses click-to-deselect) */
+  hasDragged: boolean;
+  dragStart: { x: number; y: number } | null;
+  /** Independent interactive rotation per planet — [lambda, phi] in degrees */
+  earthRotation: [number, number];
+  marsRotation: [number, number];
+  /** Current mouse canvas position (for hover cursor changes) */
+  mousePos: { x: number; y: number };
 }
