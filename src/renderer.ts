@@ -310,10 +310,59 @@ function drawVictory(_ctx: CanvasRenderingContext2D, _state: GameState): void {}
 // ── Planet detail (selected) view ─────────────────────────────────────────────
 
 const MARS_LABELS: Array<{ name: string; lon: number; lat: number }> = [
-  { name: 'Olympus Mons',     lon: -134, lat:  18 },
-  { name: 'Valles Marineris', lon:  -59, lat: -14 },
-  { name: 'Hellas Basin',     lon:   70, lat: -42 },
-  { name: 'Tharsis',         lon: -112, lat:   0 },
+  { name: 'Olympus Mons',      lon: -134, lat:  18 },
+  { name: 'Valles Marineris',  lon:  -59, lat: -14 },
+  { name: 'Hellas Planitia',   lon:   68, lat: -43 },
+  { name: 'Tharsis',           lon: -105, lat:   2 },
+  { name: 'Arabia Terra',      lon:   28, lat:  22 },
+  { name: 'Amazonis Planitia', lon: -152, lat:  25 },
+  { name: 'Vastitas Borealis', lon:   20, lat:  68 },
+  { name: 'Acidalia Planitia', lon:  -28, lat:  46 },
+  { name: 'Arcadia Planitia',  lon: -163, lat:  50 },
+  { name: 'Utopia Planitia',   lon:  110, lat:  47 },
+  { name: 'Isidis Planitia',   lon:   88, lat:  13 },
+  { name: 'Argyre Planitia',   lon:  -43, lat: -50 },
+  { name: 'Noachis Terra',     lon:  -22, lat: -48 },
+  { name: 'Hesperia Planum',   lon:  112, lat: -22 },
+  { name: 'Sirenum Planum',    lon: -158, lat: -46 },
+  { name: 'Terra Cimmeria',    lon:  148, lat: -43 },
+  { name: 'Syrtis Major',      lon:   67, lat:   9 },
+  { name: 'Elysium Mons',      lon:  147, lat:  25 },
+];
+
+const MARS_REGIONS: Array<{ coords: [number, number][] }> = [
+  { coords: [ // Arabia Terra
+    [-25,  2], [ 20, -5], [ 55,  0], [ 65, 18], [ 58, 35],
+    [ 40, 48], [ 10, 50], [-12, 42], [-22, 28], [-25,  2],
+  ]},
+  { coords: [ // Amazonis Planitia
+    [-122,  5], [-150,  0], [-170,  8], [-176, 24], [-170, 45],
+    [-148, 50], [-128, 40], [-118, 22], [-122,  5],
+  ]},
+  { coords: [ // Hellas Planitia
+    [ 50, -32], [ 98, -32], [105, -48], [ 92, -65],
+    [ 58, -65], [ 42, -50], [ 50, -32],
+  ]},
+  { coords: [ // Argyre Planitia
+    [-65, -38], [-22, -38], [-18, -52], [-30, -65],
+    [-58, -65], [-68, -52], [-65, -38],
+  ]},
+  { coords: [ // Isidis Planitia
+    [ 72,  -2], [108,  -2], [112,  15], [ 96,  32],
+    [ 76,  32], [ 68,  15], [ 72,  -2],
+  ]},
+  { coords: [ // Acidalia Planitia
+    [-68, 22], [ 8, 22], [ 12, 48], [  2, 72],
+    [-48, 74], [-72, 56], [-68, 22],
+  ]},
+  { coords: [ // Utopia Planitia
+    [ 76, 30], [152, 30], [156, 55], [138, 76],
+    [ 94, 78], [ 72, 58], [ 76, 30],
+  ]},
+  { coords: [ // Noachis Terra
+    [-78, -28], [ 18, -28], [ 20, -50], [  8, -68],
+    [-38, -72], [-78, -55], [-78, -28],
+  ]},
 ];
 
 function drawPlanetDetail(
@@ -344,7 +393,7 @@ function drawPlanetDetail(
   const pathGen = d3.geoPath(projection, ctx);
 
   // ── Atmosphere glow ──────────────────────────────────────────────────────
-  const atmosColor = planet.id === 'earth' ? '#2255cc' : '#cc4411';
+  const atmosColor = planet.id === 'earth' ? '#2255cc' : '#a04820';
   const atmos = ctx.createRadialGradient(cx, cy, radius * 0.9, cx, cy, radius * 1.18);
   atmos.addColorStop(0, atmosColor + '55');
   atmos.addColorStop(1, 'transparent');
@@ -353,23 +402,34 @@ function drawPlanetDetail(
   ctx.fillStyle = atmos;
   ctx.fill();
 
-  // ── Ocean / base sphere fill ─────────────────────────────────────────────
-  const oceanColor = planet.id === 'earth' ? '#0a1f3c' : '#2a0e05';
-
-  const sphereFill = ctx.createRadialGradient(
-    cx - radius * 0.3, cy - radius * 0.3, radius * 0.05,
-    cx, cy, radius
-  );
-  sphereFill.addColorStop(0, lerpColor(oceanColor, '#ffffff', 0.18));
-  sphereFill.addColorStop(0.6, oceanColor);
-  sphereFill.addColorStop(1, lerpColor(oceanColor, '#000000', 0.6));
-
+  // ── Base sphere fill ─────────────────────────────────────────────────────
   ctx.save();
   ctx.beginPath();
   pathGen({ type: 'Sphere' });
-  ctx.fillStyle = sphereFill;
+
+  if (planet.id === 'earth') {
+    const oceanColor = '#0a1f3c';
+    const earthFill = ctx.createRadialGradient(
+      cx - radius * 0.3, cy - radius * 0.3, radius * 0.05,
+      cx, cy, radius
+    );
+    earthFill.addColorStop(0, lerpColor(oceanColor, '#ffffff', 0.18));
+    earthFill.addColorStop(0.6, oceanColor);
+    earthFill.addColorStop(1, lerpColor(oceanColor, '#000000', 0.60));
+    ctx.fillStyle = earthFill;
+  } else {
+    // N/S gradient: northern lowlands lighter-orange, southern highlands darker-rust,
+    // with a wide blended band so there's no visible seam
+    const marsGrad = ctx.createLinearGradient(cx, cy - radius, cx, cy + radius);
+    marsGrad.addColorStop(0.00, '#d05e2c'); // north pole area
+    marsGrad.addColorStop(0.35, '#c45028'); // northern lowlands
+    marsGrad.addColorStop(0.50, '#b84420'); // equatorial blend
+    marsGrad.addColorStop(0.65, '#a83c1c'); // southern highlands
+    marsGrad.addColorStop(1.00, '#8c3018'); // south pole area
+    ctx.fillStyle = marsGrad;
+  }
   ctx.fill();
-  ctx.clip(); // clip all subsequent drawing to the sphere
+  ctx.clip();
 
   // ── Earth: continent land fill + country borders ─────────────────────────
   if (planet.id === 'earth' && geoReady()) {
@@ -394,7 +454,6 @@ function drawPlanetDetail(
       ctx.fill();
     }
 
-    // Country borders
     if (borders) {
       ctx.beginPath();
       pathGen(borders);
@@ -404,26 +463,107 @@ function drawPlanetDetail(
     }
   }
 
-  // ── Mars: terrain from GeoJSON ────────────────────────────────────────────
+  // ── Mars: terrain regions ────────────────────────────────────────────────
   if (planet.id === 'mars' && marsGeoReady()) {
     const TERRAIN_COLORS: Record<string, string> = {
-      northlow:  '#301410',  // northern volcanic plains — slightly darker/cooler
-      southhigh: '#582015',  // ancient southern highlands — distinctly reddish
-      highland:  '#b84020',
-      plain:     '#6a2010',
-      lowland:   '#1a0806',
-      volcanic:  '#0e0404',
-      canyon:    '#0a0202',
-      crater:    '#8a3018',
+      northlow:  '#cc5828',  // Vastitas Borealis — warm orange, northern lowlands are lighter
+      southhigh: '#9c3e1c',  // southern highlands — darker brownish-rust
+      highland:  '#b44820',  // cratered highland terrain
+      plain:     '#be4e24',  // smooth plains
+      lowland:   '#3c1608',  // Hellas / Argyre / Isidis basins — very dark like the image
+      volcanic:  '#c05828',  // Tharsis plateau
+      canyon:    '#2c1006',  // Valles Marineris — darkest feature
+      crater:    '#3a1608',  // smaller impact craters
     };
+    // Sun from upper-left: elevated features cast shadow bottom-right,
+    // depressed features (craters/basins) show a warm lit outer rim.
+    const ELEVATED = new Set(['volcanic', 'highland', 'plain']);
+    const DEPRESSED = new Set(['crater', 'lowland', 'canyon']);
+
     const terrain = getMarsTerrain()!;
     for (const feat of terrain.features) {
-      ctx.beginPath();
-      pathGen(feat);
-      ctx.fillStyle = TERRAIN_COLORS[feat.properties?.terrain ?? 'plain'] ?? '#2e1208';
-      ctx.fill();
+      const t = feat.properties?.terrain ?? 'plain';
+      if (t === 'northlow' || t === 'southhigh') continue;
+      const color = TERRAIN_COLORS[t] ?? '#9a4828';
+
+      if (ELEVATED.has(t)) {
+        ctx.save();
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 4;
+        ctx.shadowColor = 'rgba(8, 2, 0, 0.65)';
+        ctx.beginPath();
+        pathGen(feat);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.restore();
+      } else if (DEPRESSED.has(t)) {
+        // Pass 1: wide warm rim stroke with drop shadow — rim casts shadow outward on terrain
+        ctx.save();
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 4;
+        ctx.shadowColor = 'rgba(5, 1, 0, 0.65)';
+        ctx.beginPath();
+        pathGen(feat);
+        ctx.strokeStyle = 'rgba(148, 62, 20, 0.9)';
+        ctx.lineWidth = 5;
+        ctx.stroke();
+        ctx.restore();
+
+        // Pass 2: dark interior fill hides inner half of the stroke above
+        ctx.beginPath();
+        pathGen(feat);
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        // Pass 3: lit inner wall — sun from upper-left, so lower-right interior is illuminated
+        ctx.save();
+        ctx.beginPath();
+        pathGen(feat);
+        ctx.clip();
+        ctx.translate(3, 4); // shift fill toward lower-right inside the clip
+        ctx.beginPath();
+        pathGen(feat);
+        ctx.fillStyle = 'rgba(95, 38, 10, 0.45)';
+        ctx.fill();
+        ctx.restore();
+
+        // Pass 4: thin warm rim line on top
+        ctx.beginPath();
+        pathGen(feat);
+        ctx.strokeStyle = 'rgba(170, 80, 28, 0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        pathGen(feat);
+        ctx.fillStyle = color;
+        ctx.fill();
+      }
     }
 
+    // Polar caps
+    const nCap = d3.geoCircle().center([0, 90]).radius(13)();
+    ctx.beginPath();
+    pathGen(nCap);
+    ctx.fillStyle = '#d8d0c4';
+    ctx.fill();
+
+    const sCap = d3.geoCircle().center([0, -90]).radius(10)();
+    ctx.beginPath();
+    pathGen(sCap);
+    ctx.fillStyle = '#e0d8cc';
+    ctx.fill();
+
+    // Limb darkening over the whole sphere (base + terrain)
+    const limb = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    limb.addColorStop(0.4, 'transparent');
+    limb.addColorStop(1, 'rgba(12, 4, 2, 0.65)');
+    ctx.beginPath();
+    pathGen({ type: 'Sphere' });
+    ctx.fillStyle = limb;
+    ctx.fill();
   }
 
   // ── Graticule ────────────────────────────────────────────────────────────
@@ -435,19 +575,40 @@ function drawPlanetDetail(
   ctx.lineWidth = 0.6;
   ctx.stroke();
 
+  // ── Mars: region borders (inside canvas clip, no-clipAngle projection) ──
+  if (planet.id === 'mars') {
+    const borderProj = d3.geoOrthographic()
+      .scale(radius).translate([cx, cy]).rotate([rot[0], rot[1], 0]);
+    const borderPath = d3.geoPath(borderProj, ctx);
+    ctx.strokeStyle = 'rgba(220, 160, 90, 0.30)';
+    ctx.lineWidth = 0.8;
+    for (const region of MARS_REGIONS) {
+      const feature = {
+        type: 'Feature' as const,
+        geometry: { type: 'Polygon' as const, coordinates: [region.coords] },
+        properties: {},
+      };
+      ctx.beginPath();
+      borderPath(feature);
+      ctx.stroke();
+    }
+  }
+
   ctx.restore(); // restore clip
 
-  // ── Specular highlight ───────────────────────────────────────────────────
-  const spec = ctx.createRadialGradient(
-    cx - radius * 0.38, cy - radius * 0.38, 0,
-    cx, cy, radius
-  );
-  spec.addColorStop(0, 'rgba(255,255,255,0.35)');
-  spec.addColorStop(0.45, 'transparent');
-  ctx.beginPath();
-  pathGen({ type: 'Sphere' });
-  ctx.fillStyle = spec;
-  ctx.fill();
+  // ── Specular highlight (Earth only — Mars is matte dust) ────────────────
+  if (planet.id === 'earth') {
+    const spec = ctx.createRadialGradient(
+      cx - radius * 0.38, cy - radius * 0.38, 0,
+      cx, cy, radius
+    );
+    spec.addColorStop(0, 'rgba(255,255,255,0.35)');
+    spec.addColorStop(0.45, 'transparent');
+    ctx.beginPath();
+    pathGen({ type: 'Sphere' });
+    ctx.fillStyle = spec;
+    ctx.fill();
+  }
 
   // ── Mars: landmark labels ────────────────────────────────────────────────
   if (planet.id === 'mars') {
@@ -456,7 +617,6 @@ function drawPlanetDetail(
     for (const lm of MARS_LABELS) {
       const pt = projection([lm.lon, lm.lat]);
       if (!pt) continue;
-      // Check visible hemisphere: geoOrthographic clips, but projection returns null for back side
       ctx.fillStyle = 'rgba(255, 180, 100, 0.85)';
       ctx.beginPath();
       ctx.arc(pt[0], pt[1], 3, 0, Math.PI * 2);
@@ -467,6 +627,7 @@ function drawPlanetDetail(
   }
 
   // ── Planet sphere outline ────────────────────────────────────────────────
+  ctx.setLineDash([]);
   ctx.beginPath();
   pathGen({ type: 'Sphere' });
   ctx.strokeStyle = 'rgba(255,255,255,0.15)';
