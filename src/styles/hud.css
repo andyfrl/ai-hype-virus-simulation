@@ -1,0 +1,12 @@
+#hud {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  color: #0f0;
+  font-size: 13px;
+  line-height: 1.6;
+  text-shadow: 0 0 6px #0f0;
+  pointer-events: none;
+}
+#hud .warn   { color: #f80; text-shadow: 0 0 6px #f80; }
+#hud .danger { color: #f00; text-shadow: 0 0 6px #f00; }

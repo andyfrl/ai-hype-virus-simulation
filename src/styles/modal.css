@@ -1,0 +1,162 @@
+#mtuga-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+#mtuga-modal-overlay.visible {
+  display: flex;
+}
+
+#mtuga-modal {
+  width: 52vw;
+  height: 52vh;
+  min-width: 520px;
+  min-height: 360px;
+  background: #18180a;
+  border: 2px solid #5a4a18;
+  box-shadow:
+    inset 1px 1px 0 #6a5820,
+    inset -1px -1px 0 #0a0a02,
+    0 0 60px rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+  font-family: monospace;
+}
+
+#mtuga-modal-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── Left: portrait ───────────────────────────────────────────────────────── */
+#mtuga-modal-image {
+  width: 40%;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-right: 2px solid #3a3010;
+}
+#mtuga-modal-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* ── Right: chat log ──────────────────────────────────────────────────────── */
+#mtuga-modal-right {
+  flex: 1;
+  overflow: hidden;
+  padding: 8px 12px 8px 0;
+}
+
+#mtuga-chat {
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 8px 8px 20px;
+  scrollbar-width: thin;
+  scrollbar-color: #3a3010 transparent;
+}
+
+/* ── Speech bubble ────────────────────────────────────────────────────────── */
+.speech-bubble {
+  position: relative;
+  background: #fffde0;
+  border: 3px solid #1a1a0a;
+  border-radius: 18px;
+  padding: 14px 18px;
+  box-shadow: 4px 4px 0 #1a1a0a;
+  flex-shrink: 0;
+}
+
+.bubble-text {
+  font-family: 'Comic Sans MS', 'Chalkboard SE', 'Segoe Print', cursive;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #1a1a0a;
+  margin: 0;
+}
+
+/* ── Typing bubble ────────────────────────────────────────────────────────── */
+.typing-bubble {
+  position: relative;
+  align-self: flex-start;
+  background: #fffde0;
+  border: 3px solid #1a1a0a;
+  border-radius: 20px;
+  padding: 10px 16px;
+  box-shadow: 4px 4px 0 #1a1a0a;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  background: #1a1a0a;
+  border-radius: 50%;
+  animation: dot-bounce 1.2s ease-in-out infinite;
+}
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dot-bounce {
+  0%, 60%, 100% { transform: scale(0.7);  opacity: 0.3; }
+  30%            { transform: scale(1.35); opacity: 1;   }
+}
+
+/* ── Footer: buttons ──────────────────────────────────────────────────────── */
+#mtuga-modal-footer {
+  display: flex;
+  gap: 10px;
+  padding: 10px 14px;
+  border-top: 2px solid #3a3010;
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 10px 28px;
+  cursor: pointer;
+  border: 1px solid #3a3010;
+  box-shadow:
+    inset 1px 1px 0 rgba(200,180,80,0.25),
+    inset -1px -1px 0 rgba(0,0,0,0.7),
+    2px 2px 4px rgba(0,0,0,0.6);
+  transition: background 0.08s, color 0.08s;
+}
+.modal-btn:active {
+  box-shadow:
+    inset 1px 1px 0 rgba(0,0,0,0.7),
+    inset -1px -1px 0 rgba(200,180,80,0.25);
+  transform: translateY(1px);
+}
+
+.modal-btn.hire {
+  background: #1e2e10;
+  color: #7ec850;
+  border-color: #3a5a18;
+}
+.modal-btn.hire:hover { background: #283e18; color: #a0e870; }
+
+.modal-btn.cancel {
+  background: #222212;
+  color: #7a6830;
+  border-color: #3a3010;
+}
+.modal-btn.cancel:hover { background: #2e2e16; color: #c8a840; }

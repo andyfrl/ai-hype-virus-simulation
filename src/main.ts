@@ -1,8 +1,11 @@
+import './styles/base.css';
+import './styles/hud.css';
 import { animationFrameScheduler, interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { createInitialState, stepState } from './simulation';
 import { render, getPlanetHitRadius, largeDetailRadius } from './renderer';
 import { loadGeoData, loadMarsGeoData } from './geo';
+import { initSidebar, SIDEBAR_WIDTH } from './sidebar';
 import type { GameState, UIState } from './types';
 
 // ── Canvas setup ──────────────────────────────────────────────────────────────
@@ -11,10 +14,12 @@ const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
 
 function resize(): void {
-  canvas.width  = window.innerWidth;
+  canvas.width  = window.innerWidth - SIDEBAR_WIDTH;
   canvas.height = window.innerHeight;
 }
 resize();
+
+initSidebar();
 
 // ── Simulation state ──────────────────────────────────────────────────────────
 
