@@ -1,5 +1,5 @@
 import './styles/sidebar.css';
-import { showMtugaModal } from './modal';
+import { showCrewModal } from './modal';
 
 export const SIDEBAR_WIDTH = 200;
 
@@ -23,15 +23,9 @@ const BUILDINGS: TileData[] = [
 ];
 
 const CREW: TileData[] = [
-  { id: 'trooper',   icon: '👨‍🚀', name: 'Trooper',   cost:  30 },
-  { id: 'engineer',  icon: '🔧',   name: 'Engineer',  cost:  45 },
-  { id: 'pilot',     icon: '🛸',   name: 'Pilot',     cost:  60 },
-  { id: 'scout',     icon: '🔭',   name: 'Scout',     cost:  35 },
-  { id: 'medic',     icon: '💉',   name: 'Medic',     cost:  40 },
-  { id: 'hacker',    icon: '💻',   name: 'Hacker',    cost:  55 },
-  { id: 'miner',     icon: '⛏️',  name: 'Miner',     cost:  38 },
-  { id: 'commander', icon: '⭐',   name: 'Commander', cost:  80 },
-  { id: 'mtuga',     icon: '',     image: '/mtuga.jpeg', name: 'MtUGA', cost: 999 },
+  { id: 'mtuga',        icon: '', image: '/mtuga.jpeg',        name: 'MtUGA',        cost: 999 },
+  { id: 'melon_tusk',   icon: '', image: '/melon_tusk.jpeg',   name: 'Melon Tusk',   cost: 999 },
+  { id: 'samus_altman', icon: '', image: '/samus_altman.jpeg', name: 'Samus Altman', cost: 999 },
 ];
 
 export type SidebarMode = 'build' | 'crew';
@@ -65,7 +59,7 @@ export function initSidebar(): SidebarState {
         const id = el.dataset.id!;
         state.selectedTile = state.selectedTile === id ? null : id;
         renderTiles();
-        if (id === 'mtuga') showMtugaModal(() => { /* hire logic TBD */ });
+        showCrewModal(id, () => { /* hire logic TBD */ });
       });
     });
   }

@@ -1,4 +1,4 @@
-#mtuga-modal-overlay {
+#crew-modal-overlay {
   display: none;
   position: fixed;
   inset: 0;
@@ -7,11 +7,11 @@
   align-items: center;
   justify-content: center;
 }
-#mtuga-modal-overlay.visible {
+#crew-modal-overlay.visible {
   display: flex;
 }
 
-#mtuga-modal {
+#crew-modal {
   width: 52vw;
   height: 52vh;
   min-width: 520px;
@@ -27,20 +27,20 @@
   font-family: monospace;
 }
 
-#mtuga-modal-body {
+#crew-modal-body {
   flex: 1;
   display: flex;
   overflow: hidden;
 }
 
 /* ── Left: portrait ───────────────────────────────────────────────────────── */
-#mtuga-modal-image {
+#crew-modal-image {
   width: 40%;
   flex-shrink: 0;
   overflow: hidden;
   border-right: 2px solid #3a3010;
 }
-#mtuga-modal-image img {
+#crew-modal-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -50,13 +50,13 @@
 }
 
 /* ── Right: chat log ──────────────────────────────────────────────────────── */
-#mtuga-modal-right {
+#crew-modal-right {
   flex: 1;
   overflow: hidden;
   padding: 8px 12px 8px 0;
 }
 
-#mtuga-chat {
+#crew-chat {
   height: 100%;
   overflow-y: auto;
   display: flex;
@@ -117,7 +117,7 @@
 }
 
 /* ── Footer: buttons ──────────────────────────────────────────────────────── */
-#mtuga-modal-footer {
+#crew-modal-footer {
   display: flex;
   gap: 10px;
   padding: 10px 14px;

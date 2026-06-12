@@ -1,13 +1,19 @@
 import './styles/modal.css';
+import mtugaQuotes from './data/quotes/mtuga.json';
+import melonTuskQuotes from './data/quotes/melon_tusk.json';
+import samusAltmanQuotes from './data/quotes/samus_altman.json';
 
-let allQuotes: string[] = [];
+interface CrewConfig {
+  image: string;
+  alt: string;
+  quotes: string[];
+}
 
-fetch('/mtuga_quotes.txt')
-  .then(r => r.text())
-  .then(text => {
-    allQuotes = text.split(/\n\n+/).map(q => q.trim()).filter(Boolean);
-  })
-  .catch(console.error);
+const CREW_CONFIGS: Record<string, CrewConfig> = {
+  mtuga:        { image: '/mtuga.jpeg',        alt: 'MtUGA',        quotes: mtugaQuotes },
+  melon_tusk:   { image: '/melon_tusk.jpeg',   alt: 'Melon Tusk',   quotes: melonTuskQuotes },
+  samus_altman: { image: '/samus_altman.jpeg', alt: 'Samus Altman', quotes: samusAltmanQuotes },
+};
 
 function nextQuote(remaining: Set<string>): string | null {
   if (remaining.size === 0) return null;
@@ -34,13 +40,20 @@ function makeTypingBubble(): HTMLElement {
   return bubble;
 }
 
-export function showMtugaModal(onHire: () => void): void {
-  const overlay    = document.getElementById('mtuga-modal-overlay')!;
-  const chat       = document.getElementById('mtuga-chat')!;
-  const btnHire    = document.getElementById('mtuga-btn-hire')!;
-  const btnCancel  = document.getElementById('mtuga-btn-cancel')!;
+export function showCrewModal(crewId: string, onHire: () => void): void {
+  const config = CREW_CONFIGS[crewId];
+  if (!config) return;
 
-  const remaining = new Set<string>(allQuotes);
+  const overlay   = document.getElementById('crew-modal-overlay')!;
+  const img       = document.getElementById('crew-modal-img') as HTMLImageElement;
+  const chat      = document.getElementById('crew-chat')!;
+  const btnHire   = document.getElementById('crew-btn-hire')!;
+  const btnCancel = document.getElementById('crew-btn-cancel')!;
+
+  img.src = config.image;
+  img.alt = config.alt;
+
+  const remaining = new Set<string>(config.quotes);
   let timer: ReturnType<typeof setTimeout> | null = null;
 
   function scheduleNext(): void {
