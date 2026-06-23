@@ -90,6 +90,15 @@ export interface GameState {
   rocketLocked: boolean;
 }
 
+// ── Sidebar state ─────────────────────────────────────────────────────────────
+
+export type SidebarMode = 'build' | 'crew';
+
+export interface SidebarState {
+  mode: SidebarMode;
+  selectedTile: string | null;
+}
+
 // ── UI / interaction state (not part of simulation) ───────────────────────────
 
 export interface UIState {

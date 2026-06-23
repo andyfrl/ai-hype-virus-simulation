@@ -1,23 +1,8 @@
 import * as d3 from 'd3';
 import * as R from 'ramda';
 import type { GameState, Planet, Particle, Virus, Vec2, UIState } from './types';
-import { lerp } from './simulation';
 import { geoReady, getLand, getBorders, marsGeoReady, getMarsTerrain } from './geo';
-
-// ── Geo path context wrapper ──────────────────────────────────────────────────
-// d3-geo renders to a canvas 2D context via d3.geoPath with a context target.
-
-function lerpColor(a: string, b: string, t: number): string {
-  const parse = (hex: string) => {
-    const n = parseInt(hex.replace('#', ''), 16);
-    return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
-  };
-  const ca = parse(a), cb = parse(b);
-  const r  = Math.round(lerp(ca[0], cb[0], t));
-  const g  = Math.round(lerp(ca[1], cb[1], t));
-  const bl = Math.round(lerp(ca[2], cb[2], t));
-  return `rgb(${r},${g},${bl})`;
-}
+import { lerpColor } from './utils/color';
 
 // ── Draw starfield (cached) ───────────────────────────────────────────────────
 
@@ -270,37 +255,6 @@ function drawViruses(ctx: CanvasRenderingContext2D, viruses: Virus[], tick: numb
     ctx.fillText('🦠', v.pos.x, v.pos.y);
   }
   ctx.globalAlpha = 1;
-}
-
-// ── Draw HUD ──────────────────────────────────────────────────────────────────
-
-function updateHUD(state: GameState, ui: UIState): void {
-  const hud = document.getElementById('hud');
-  if (!hud) return;
-
-  if (ui.selectedPlanet) {
-    // Minimal HUD in detail view
-    const planet = state.planets.find(p => p.id === ui.selectedPlanet)!;
-    const classFor = (lvl: number) => lvl > 0.7 ? 'danger' : lvl > 0.35 ? 'warn' : '';
-    hud.innerHTML = `
-      <div class="${classFor(planet.infectionLevel)}">${planet.label} — ${(planet.infectionLevel * 100).toFixed(1)}% infected</div>
-      <div style="color:#666;font-size:11px">drag to rotate • ESC to return</div>
-    `.trim();
-    return;
-  }
-
-  const [earth, mars] = state.planets;
-  const rPhase = ['Docked on Earth', 'In Flight', '', 'Landed on Mars', 'Crashed'][state.rocket.phase];
-  const classFor = (lvl: number) => lvl > 0.7 ? 'danger' : lvl > 0.35 ? 'warn' : '';
-
-  hud.innerHTML = `
-    <div>☣ AI HYPE VIRUS OUTBREAK</div>
-    <div>Tick: ${state.tick}</div>
-    <div class="${classFor(earth.infectionLevel)}">🌍 Earth: ${(earth.infectionLevel * 100).toFixed(1)}%</div>
-    <div class="${classFor(mars.infectionLevel)}">🔴 Mars: ${(mars.infectionLevel * 100).toFixed(1)}%</div>
-    <div>🚀 Rocket: ${rPhase}</div>
-    <div>${state.phase}</div>
-  `.trim();
 }
 
 // ── Draw victory overlay ──────────────────────────────────────────────────────
@@ -694,6 +648,4 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState, ui: UISt
 
   // Detail overlay drawn last so it sits on top of everything
   drawPlanetDetail(ctx, state, ui);
-
-  updateHUD(state, ui);
 }
