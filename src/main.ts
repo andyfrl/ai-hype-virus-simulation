@@ -157,6 +157,36 @@ canvas.addEventListener('click', (e) => {
   }
 });
 
+// ── HUD DOM update ────────────────────────────────────────────────────────────
+
+function updateHUD(s: GameState, uiState: UIState): void {
+  const hud = document.getElementById('hud');
+  if (!hud) return;
+
+  if (uiState.selectedPlanet) {
+    const planet = s.planets.find(p => p.id === uiState.selectedPlanet)!;
+    const classFor = (lvl: number) => lvl > 0.7 ? 'danger' : lvl > 0.35 ? 'warn' : '';
+    hud.innerHTML = `
+      <div class="${classFor(planet.infectionLevel)}">${planet.label} — ${(planet.infectionLevel * 100).toFixed(1)}% infected</div>
+      <div style="color:#666;font-size:11px">drag to rotate • ESC to return</div>
+    `.trim();
+    return;
+  }
+
+  const [earth, mars] = s.planets;
+  const rPhase = ['Docked on Earth', 'In Flight', '', 'Landed on Mars', 'Crashed'][s.rocket.phase];
+  const classFor = (lvl: number) => lvl > 0.7 ? 'danger' : lvl > 0.35 ? 'warn' : '';
+
+  hud.innerHTML = `
+    <div>☣ AI HYPE VIRUS OUTBREAK</div>
+    <div>Tick: ${s.tick}</div>
+    <div class="${classFor(earth.infectionLevel)}">🌍 Earth: ${(earth.infectionLevel * 100).toFixed(1)}%</div>
+    <div class="${classFor(mars.infectionLevel)}">🔴 Mars: ${(mars.infectionLevel * 100).toFixed(1)}%</div>
+    <div>🚀 Rocket: ${rPhase}</div>
+    <div>${s.phase}</div>
+  `.trim();
+}
+
 // ── Keyboard ──────────────────────────────────────────────────────────────────
 
 window.addEventListener('keydown', (e) => {
@@ -178,6 +208,7 @@ frame$
     next: (s: GameState) => {
       try {
         render(ctx, s, ui);
+        updateHUD(s, ui);
       } catch (err) {
         console.error('render error', err);
       }

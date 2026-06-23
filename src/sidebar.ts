@@ -1,5 +1,7 @@
 import './styles/sidebar.css';
 import { showCrewModal } from './modal';
+import type { SidebarState } from './types';
+import { CREW_MEMBERS } from './data/crew';
 
 export const SIDEBAR_WIDTH = 200;
 
@@ -22,18 +24,7 @@ const BUILDINGS: TileData[] = [
   { id: 'med-bay',    icon: '💊', name: 'Med Bay',      cost:  85 },
 ];
 
-const CREW: TileData[] = [
-  { id: 'mtuga',        icon: '', image: '/mtuga.jpeg',        name: 'MtUGA',        cost: 999 },
-  { id: 'melon_tusk',   icon: '', image: '/melon_tusk.jpeg',   name: 'Melon Tusk',   cost: 999 },
-  { id: 'samus_altman', icon: '', image: '/samus_altman.jpeg', name: 'Samus Altman', cost: 999 },
-];
-
-export type SidebarMode = 'build' | 'crew';
-
-export interface SidebarState {
-  mode: SidebarMode;
-  selectedTile: string | null;
-}
+const CREW: TileData[] = CREW_MEMBERS.map(m => ({ id: m.id, icon: '', image: m.image, name: m.name, cost: m.cost }));
 
 export function initSidebar(): SidebarState {
   const state: SidebarState = { mode: 'build', selectedTile: null };
@@ -59,7 +50,9 @@ export function initSidebar(): SidebarState {
         const id = el.dataset.id!;
         state.selectedTile = state.selectedTile === id ? null : id;
         renderTiles();
-        showCrewModal(id, () => { /* hire logic TBD */ });
+        if (state.mode === 'crew') {
+          showCrewModal(id, () => { /* hire logic TBD */ });
+        }
       });
     });
   }

@@ -1,19 +1,9 @@
 import './styles/modal.css';
-import mtugaQuotes from './data/quotes/mtuga.json';
-import melonTuskQuotes from './data/quotes/melon_tusk.json';
-import samusAltmanQuotes from './data/quotes/samus_altman.json';
+import { CREW_MEMBERS } from './data/crew';
 
-interface CrewConfig {
-  image: string;
-  alt: string;
-  quotes: string[];
-}
-
-const CREW_CONFIGS: Record<string, CrewConfig> = {
-  mtuga:        { image: '/mtuga.jpeg',        alt: 'MtUGA',        quotes: mtugaQuotes },
-  melon_tusk:   { image: '/melon_tusk.jpeg',   alt: 'Melon Tusk',   quotes: melonTuskQuotes },
-  samus_altman: { image: '/samus_altman.jpeg', alt: 'Samus Altman', quotes: samusAltmanQuotes },
-};
+const CREW_CONFIGS = Object.fromEntries(
+  CREW_MEMBERS.map(m => [m.id, { image: m.image, alt: m.name, quotes: m.quotes }])
+);
 
 function nextQuote(remaining: Set<string>): string | null {
   if (remaining.size === 0) return null;
