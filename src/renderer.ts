@@ -1,5 +1,5 @@
 import type { GameState, Planet, UIState } from './types';
-import { getPlanetRenderer } from './renderers/planet-detail-renderer';
+import { getPlanetRenderer } from './renderers';
 import {
   drawStars,
   drawSun,
@@ -9,10 +9,6 @@ import {
   drawParticles,
   drawViruses,
 } from './renderers/solar-system';
-
-// Side-effect imports register Earth and Mars renderers into the registry.
-import './renderers/earth';
-import './renderers/mars';
 
 // ── Hit test helpers (exported for main.ts) ───────────────────────────────────
 

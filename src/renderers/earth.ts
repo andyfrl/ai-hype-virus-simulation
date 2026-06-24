@@ -3,7 +3,6 @@ import type { GameState, UIState } from '../types';
 import { geoReady, getLand, getBorders } from '../geo';
 import { lerpColor } from '../utils/color';
 import type { PlanetDetailRenderer } from './planet-detail-renderer';
-import { registerPlanetRenderer } from './planet-detail-renderer';
 
 function drawEarthDetail(
   ctx: CanvasRenderingContext2D,
@@ -108,9 +107,7 @@ function drawEarthDetail(
   ctx.stroke();
 }
 
-const earthRenderer: PlanetDetailRenderer = {
+export const earthRenderer: PlanetDetailRenderer = {
   planetId: 'earth',
   render: drawEarthDetail,
 };
-
-registerPlanetRenderer(earthRenderer);

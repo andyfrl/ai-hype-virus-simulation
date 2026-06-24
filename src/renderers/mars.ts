@@ -2,7 +2,6 @@ import * as d3 from 'd3';
 import type { GameState, UIState } from '../types';
 import { marsGeoReady, getMarsTerrain } from '../geo';
 import type { PlanetDetailRenderer } from './planet-detail-renderer';
-import { registerPlanetRenderer } from './planet-detail-renderer';
 
 const MARS_LABELS: Array<{ name: string; lon: number; lat: number }> = [
   { name: 'Olympus Mons',      lon: -134, lat:  18 },
@@ -243,9 +242,7 @@ function drawMarsDetail(
   ctx.stroke();
 }
 
-const marsRenderer: PlanetDetailRenderer = {
+export const marsRenderer: PlanetDetailRenderer = {
   planetId: 'mars',
   render: drawMarsDetail,
 };
-
-registerPlanetRenderer(marsRenderer);
