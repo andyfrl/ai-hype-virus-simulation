@@ -1,16 +1,31 @@
 import * as R from 'ramda';
-import type { GameState, Planet, Rocket, Particle, Virus, Vec2, TechBro } from './types';
+import type { GameState, Planet, Rocket, Particle, Virus, Vec2, TechBro, RocketInput } from './types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const EARTH_ORBIT_AU = 180;   // pixels
 const MARS_ORBIT_AU  = 290;
-const ROCKET_SPEED   = 1.4;   // px/frame while cruising
 const INFECTION_RATE_EARTH = 0.0008;
 const INFECTION_RATE_MARS  = 0.0004;
 const INFECTION_SPREAD_DIST = 70;
 const VIRUS_SPAWN_INTERVAL  = 6;
 const EXHAUST_INTERVAL      = 2;
+
+// ── Rocket physics constants ──────────────────────────────────────────────────
+
+const MAX_FUEL          = 1200;
+const FUEL_BURN_RATE    = 1;
+const THRUST_ACCEL      = 0.12;  // px/frame²
+const MAX_SPEED         = 4;     // px/frame
+const ROTATION_SPEED    = 0.045; // rad/frame
+const LANDING_PAD       = 10;    // px past planet radius
+const MAX_LANDING_SPEED = 1.5;   // px/frame
+const LANDING_ANGLE_TOL = 40;    // degrees
+const DRAG              = 0.999;
+const DOCK_OFFSET       = 6;     // px above surface when docked
+const BOUNCE_DAMPING    = 0.55;  // velocity multiplier on screen-edge bounce
+
+export { MAX_FUEL, LANDING_PAD, MAX_LANDING_SPEED };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -83,13 +98,22 @@ export function createInitialState(width: number, height: number): GameState {
     rotationVelocity: 0.022,
   };
 
+  const earthInitPos = vec2(
+    cx + Math.cos(Math.PI * 0.3) * EARTH_ORBIT_AU,
+    cy + Math.sin(Math.PI * 0.3) * EARTH_ORBIT_AU,
+  );
+
   const rocket: Rocket = {
-    pos: vec2(cx, cy),
+    pos: vec2(
+      earthInitPos.x + Math.cos(-Math.PI / 2) * (22 + DOCK_OFFSET),
+      earthInitPos.y + Math.sin(-Math.PI / 2) * (22 + DOCK_OFFSET),
+    ),
     vel: vec2(0, 0),
     phase: 0,
     passengers: buildPassengers(),
-    heading: 0,
+    heading: -Math.PI / 2,
     exhaustTimer: 0,
+    fuel: MAX_FUEL,
   };
 
   return {
@@ -105,7 +129,7 @@ export function createInitialState(width: number, height: number): GameState {
     width,
     height,
     auScale: 1,
-    rocketLocked: true,
+    rocketInput: { rotate: 0, thrust: false, brake: false },
   };
 }
 
@@ -127,42 +151,108 @@ function updatePlanet(planet: Planet, sunPos: Vec2): Planet {
 
 // ── Rocket state machine ──────────────────────────────────────────────────────
 
-function updateRocket(rocket: Rocket, earth: Planet, mars: Planet, tick: number, locked: boolean): Rocket {
+function dockedPos(planet: Planet): Vec2 {
+  return vec2(
+    planet.screenPos.x + Math.cos(-Math.PI / 2) * (planet.radius + DOCK_OFFSET),
+    planet.screenPos.y + Math.sin(-Math.PI / 2) * (planet.radius + DOCK_OFFSET),
+  );
+}
+
+function nozzleAngle(heading: number): number {
+  return heading + Math.PI;
+}
+
+function angleDiffDeg(a: number, b: number): number {
+  let d = ((b - a) * 180 / Math.PI) % 360;
+  if (d > 180) d -= 360;
+  if (d < -180) d += 360;
+  return Math.abs(d);
+}
+
+function updateRocket(rocket: Rocket, earth: Planet, mars: Planet, input: RocketInput, width: number, height: number): Rocket {
   const updated = { ...rocket, exhaustTimer: rocket.exhaustTimer + 1 };
 
+  // ── Docked on Earth ────────────────────────────────────────────────────────
   if (rocket.phase === 0) {
-    // Idle on Earth — launch after 200 ticks (skipped when locked)
-    if (!locked && tick > 200) {
-      return { ...updated, phase: 1, pos: { ...earth.screenPos } };
+    const pos = dockedPos(earth);
+    if (input.thrust) {
+      const vel = vec2(Math.cos(updated.heading) * THRUST_ACCEL, Math.sin(updated.heading) * THRUST_ACCEL);
+      return { ...updated, pos, vel, phase: 1, fuel: rocket.fuel - FUEL_BURN_RATE };
     }
-    return { ...updated, pos: { ...earth.screenPos } };
+    return { ...updated, pos };
   }
 
-  if (rocket.phase === 1) {
-    // Launch — fly toward Mars
-    const target = mars.screenPos;
-    const heading = angleTo(updated.pos, target);
-    const speed = ROCKET_SPEED;
-    const newPos = vec2(
-      updated.pos.x + Math.cos(heading) * speed,
-      updated.pos.y + Math.sin(heading) * speed
-    );
-    const arrived = dist(newPos, target) < mars.radius + 4;
-    return {
-      ...updated,
-      pos: newPos,
-      vel: vec2(Math.cos(heading) * speed, Math.sin(heading) * speed),
-      heading,
-      phase: arrived ? 3 : 1,
-    };
-  }
-
+  // ── Docked on Mars ─────────────────────────────────────────────────────────
   if (rocket.phase === 3) {
-    // Landing on Mars — stay attached
-    return { ...updated, pos: { ...mars.screenPos }, vel: vec2(0, 0), phase: 3 };
+    const pos = dockedPos(mars);
+    if (input.thrust) {
+      const vel = vec2(Math.cos(updated.heading) * THRUST_ACCEL, Math.sin(updated.heading) * THRUST_ACCEL);
+      return { ...updated, pos, vel, phase: 1, fuel: rocket.fuel - FUEL_BURN_RATE };
+    }
+    return { ...updated, pos };
   }
 
-  return updated;
+  // ── Crashed ────────────────────────────────────────────────────────────────
+  if (rocket.phase === 4) return updated;
+
+  // ── In flight (phase 1) ────────────────────────────────────────────────────
+  let { heading, vel, fuel } = updated;
+
+  heading += input.rotate * ROTATION_SPEED;
+
+  if (input.thrust) {
+    vel = vec2(vel.x + Math.cos(heading) * THRUST_ACCEL, vel.y + Math.sin(heading) * THRUST_ACCEL);
+    fuel -= FUEL_BURN_RATE;
+  }
+
+  if (input.brake) {
+    vel = vec2(vel.x + Math.cos(heading + Math.PI) * THRUST_ACCEL, vel.y + Math.sin(heading + Math.PI) * THRUST_ACCEL);
+    fuel -= FUEL_BURN_RATE;
+  }
+
+  let speed = Math.sqrt(vel.x ** 2 + vel.y ** 2);
+
+  vel = vec2(vel.x * DRAG, vel.y * DRAG);
+  if (speed > MAX_SPEED) {
+    vel = vec2((vel.x / speed) * MAX_SPEED, (vel.y / speed) * MAX_SPEED);
+  }
+
+  let pos = vec2(updated.pos.x + vel.x, updated.pos.y + vel.y);
+
+  // ── Screen boundary bounce ─────────────────────────────────────────────────
+  if (pos.x < 0)      { pos = vec2(0,     pos.y); vel = vec2(Math.abs(vel.x) * BOUNCE_DAMPING,  vel.y); }
+  if (pos.x > width)  { pos = vec2(width, pos.y); vel = vec2(-Math.abs(vel.x) * BOUNCE_DAMPING, vel.y); }
+  if (pos.y < 0)      { pos = vec2(pos.x, 0);      vel = vec2(vel.x,  Math.abs(vel.y) * BOUNCE_DAMPING); }
+  if (pos.y > height) { pos = vec2(pos.x, height);  vel = vec2(vel.x, -Math.abs(vel.y) * BOUNCE_DAMPING); }
+
+  // ── Landing / crash check ──────────────────────────────────────────────────
+  for (const planet of [earth, mars] as Planet[]) {
+    const d = dist(pos, planet.screenPos);
+    if (d > planet.radius + LANDING_PAD) continue;
+
+    // Only evaluate when actually approaching — skip if moving away (e.g. just launched)
+    const toPlanetX = planet.screenPos.x - pos.x;
+    const toPlanetY = planet.screenPos.y - pos.y;
+    const approaching = vel.x * toPlanetX + vel.y * toPlanetY > 0;
+    if (!approaching) continue;
+
+    const dirToPlanet = angleTo(pos, planet.screenPos);
+    const nozzle = nozzleAngle(heading);
+    const aligned = angleDiffDeg(nozzle, dirToPlanet) <= LANDING_ANGLE_TOL;
+    const slow = speed <= MAX_LANDING_SPEED;
+
+    if (aligned && slow) {
+      const dockedPhase: 0 | 3 = planet.id === 'earth' ? 0 : 3;
+      return { ...updated, pos: dockedPos(planet), vel: vec2(0, 0), heading: -Math.PI / 2, phase: dockedPhase, fuel: MAX_FUEL };
+    }
+    return { ...updated, pos, vel, heading, fuel, phase: 4 };
+  }
+
+  if (fuel <= 0) {
+    return { ...updated, pos, vel, heading, fuel: 0, phase: 4 };
+  }
+
+  return { ...updated, pos, vel, heading, fuel };
 }
 
 // ── Infection spread ──────────────────────────────────────────────────────────
@@ -228,6 +318,7 @@ function spawnExhaust(state: GameState): Particle[] {
   const alive = R.filter((p: Particle) => p.life > 0, state.particles);
 
   if (rocket.phase !== 1) return alive;
+  if (!state.rocketInput.thrust) return alive;
   if (rocket.exhaustTimer % EXHAUST_INTERVAL !== 0) return alive;
 
   const back = rocket.heading + Math.PI;
@@ -316,9 +407,10 @@ function computePhaseLabel(state: GameState): string {
   const { rocket } = state;
 
   if (state.victoryAchieved) return '🦠 SOLAR SYSTEM INFECTED — Melon Tusk wins!';
-  if (rocket.phase === 0) return '🌍 Patient Zero incubating on Earth…';
-  if (rocket.phase === 1) return '🚀 Melon Tusk departing for Mars!';
-  if (rocket.phase === 3 && mars.infectionLevel < 0.5) return '👾 Tech bros spreading AI Hype Virus on Mars…';
+  if (rocket.phase === 4) return '💥 CRASHED — Press R to restart';
+  if (rocket.phase === 0) return '🌍 Docked on Earth — hold ↑ to launch';
+  if (rocket.phase === 1) return '🚀 In flight';
+  if (rocket.phase === 3 && mars.infectionLevel < 0.5) return '👾 Docked on Mars — tech bros spreading the virus…';
   if (rocket.phase === 3 && mars.infectionLevel >= 0.5) return '☣ Mars heavily infected! Hype spreading fast!';
   return '…';
 }
@@ -331,7 +423,7 @@ export function stepState(state: GameState): GameState {
   const earth = updatePlanet(rawEarth, state.sunPos);
   const mars  = updatePlanet(rawMars,  state.sunPos);
 
-  const rocket = updateRocket(state.rocket, earth, mars, state.tick, state.rocketLocked);
+  const rocket = updateRocket(state.rocket, earth, mars, state.rocketInput, state.width, state.height);
 
   const [infEarth, infMars] = updateInfection([earth, mars], rocket, state.tick);
 

@@ -6,6 +6,7 @@ import {
   drawOrbitRing,
   drawPlanet,
   drawRocket,
+  drawApproachRings,
   drawParticles,
   drawViruses,
 } from './renderers/solar-system';
@@ -44,6 +45,7 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState, ui: UISt
     drawPlanet(ctx, planet, hovered);
   }
 
+  drawApproachRings(ctx, state);
   drawRocket(ctx, state);
   drawViruses(ctx, state.viruses, tick);
 

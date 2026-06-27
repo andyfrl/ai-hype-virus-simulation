@@ -2,7 +2,7 @@ import './styles/base.css';
 import './styles/hud.css';
 import { animationFrameScheduler, interval } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { createInitialState, stepState } from './simulation';
+import { createInitialState, stepState, MAX_FUEL } from './simulation';
 import { render, getPlanetHitRadius, largeDetailRadius } from './renderer';
 import { loadGeoData, loadMarsGeoData } from './geo';
 import { initSidebar, SIDEBAR_WIDTH } from './sidebar';
@@ -174,23 +174,43 @@ function updateHUD(s: GameState, uiState: UIState): void {
   }
 
   const [earth, mars] = s.planets;
-  const rPhase = ['Docked on Earth', 'In Flight', '', 'Landed on Mars', 'Crashed'][s.rocket.phase];
   const classFor = (lvl: number) => lvl > 0.7 ? 'danger' : lvl > 0.35 ? 'warn' : '';
+  const fuelPct = Math.round((s.rocket.fuel / MAX_FUEL) * 100);
+  const fuelClass = fuelPct < 20 ? 'danger' : fuelPct < 40 ? 'warn' : '';
+  const speed = Math.sqrt(s.rocket.vel.x ** 2 + s.rocket.vel.y ** 2).toFixed(2);
 
   hud.innerHTML = `
     <div>☣ AI HYPE VIRUS OUTBREAK</div>
     <div>Tick: ${s.tick}</div>
     <div class="${classFor(earth.infectionLevel)}">🌍 Earth: ${(earth.infectionLevel * 100).toFixed(1)}%</div>
     <div class="${classFor(mars.infectionLevel)}">🔴 Mars: ${(mars.infectionLevel * 100).toFixed(1)}%</div>
-    <div>🚀 Rocket: ${rPhase}</div>
+    <div class="${fuelClass}">⛽ Fuel: ${fuelPct}%</div>
+    ${s.rocket.phase === 1 ? `<div>Speed: ${speed} px/f</div>` : ''}
     <div>${s.phase}</div>
+    ${s.rocket.phase === 4 ? '<div class="danger">Press R to restart</div>' : ''}
   `.trim();
 }
 
 // ── Keyboard ──────────────────────────────────────────────────────────────────
 
+const keysHeld = new Set<string>();
+
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') ui.selectedPlanet = null;
+  if (e.key === 'Escape') { ui.selectedPlanet = null; return; }
+  if (e.key === 'r' || e.key === 'R') {
+    if (state.rocket.phase === 4) {
+      state = createInitialState(canvas.width, canvas.height);
+    }
+    return;
+  }
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+    e.preventDefault();
+    keysHeld.add(e.key);
+  }
+});
+
+window.addEventListener('keyup', (e) => {
+  keysHeld.delete(e.key);
 });
 
 // ── Animation frame stream via RxJS ──────────────────────────────────────────
@@ -200,7 +220,10 @@ const frame$ = interval(0, animationFrameScheduler);
 frame$
   .pipe(
     map(() => {
-      state = stepState(state);
+      const rotate = (keysHeld.has('ArrowRight') ? 1 : 0) - (keysHeld.has('ArrowLeft') ? 1 : 0);
+      const thrust = keysHeld.has('ArrowUp');
+      const brake  = keysHeld.has('ArrowDown');
+      state = stepState({ ...state, rocketInput: { rotate, thrust, brake } });
       return state;
     })
   )

@@ -150,13 +150,34 @@ export function drawPlanet(ctx: CanvasRenderingContext2D, planet: Planet, isHove
   ctx.fillText(`${pct}% infected`, x, by + barH + 10);
 }
 
+export function drawApproachRings(ctx: CanvasRenderingContext2D, state: GameState): void {
+  const { rocket, planets } = state;
+  if (rocket.phase !== 1) return;
+
+  for (const planet of planets) {
+    const d = Math.sqrt((rocket.pos.x - planet.screenPos.x) ** 2 + (rocket.pos.y - planet.screenPos.y) ** 2);
+    const approachRadius = planet.radius * 4;
+    if (d > approachRadius) continue;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(planet.screenPos.x, planet.screenPos.y, approachRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 220, 80, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 6]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+}
+
 export function drawRocket(ctx: CanvasRenderingContext2D, state: GameState): void {
   const { rocket } = state;
-  if (rocket.phase === 0) return;
-
   const { pos, heading } = rocket;
+  const crashed = rocket.phase === 4;
 
   ctx.save();
+  if (crashed) ctx.globalAlpha = 0.45;
   ctx.translate(pos.x, pos.y);
   ctx.rotate(heading);
 
@@ -166,7 +187,7 @@ export function drawRocket(ctx: CanvasRenderingContext2D, state: GameState): voi
   ctx.lineTo(-14, 0);
   ctx.lineTo(-8, 7);
   ctx.closePath();
-  ctx.fillStyle = '#e8e8e8';
+  ctx.fillStyle = crashed ? '#888' : '#e8e8e8';
   ctx.fill();
   ctx.strokeStyle = '#888';
   ctx.lineWidth = 0.8;
@@ -177,12 +198,12 @@ export function drawRocket(ctx: CanvasRenderingContext2D, state: GameState): voi
   ctx.lineTo(10, -4);
   ctx.lineTo(10, 4);
   ctx.closePath();
-  ctx.fillStyle = '#f00';
+  ctx.fillStyle = crashed ? '#555' : '#f00';
   ctx.fill();
 
   ctx.beginPath();
   ctx.arc(2, 0, 4, 0, Math.PI * 2);
-  ctx.fillStyle = '#4af';
+  ctx.fillStyle = crashed ? '#446' : '#4af';
   ctx.fill();
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = 0.8;
@@ -192,19 +213,31 @@ export function drawRocket(ctx: CanvasRenderingContext2D, state: GameState): voi
   ctx.moveTo(-8, -7);
   ctx.lineTo(-16, -14);
   ctx.lineTo(-14, -7);
-  ctx.fillStyle = '#c00';
+  ctx.fillStyle = crashed ? '#444' : '#c00';
   ctx.fill();
 
   ctx.beginPath();
   ctx.moveTo(-8, 7);
   ctx.lineTo(-16, 14);
   ctx.lineTo(-14, 7);
-  ctx.fillStyle = '#c00';
+  ctx.fillStyle = crashed ? '#444' : '#c00';
   ctx.fill();
+
+  // Thrust flame
+  if (rocket.phase === 1 && state.rocketInput.thrust) {
+    const flameLen = 8 + Math.random() * 6;
+    ctx.beginPath();
+    ctx.moveTo(-14, -3);
+    ctx.lineTo(-14 - flameLen, 0);
+    ctx.lineTo(-14, 3);
+    ctx.closePath();
+    ctx.fillStyle = `rgba(255, ${120 + Math.random() * 80 | 0}, 0, 0.85)`;
+    ctx.fill();
+  }
 
   ctx.restore();
 
-  if (rocket.phase === 1 || rocket.phase === 3) {
+  if (rocket.phase === 1 || rocket.phase === 0 || rocket.phase === 3) {
     ctx.save();
     ctx.translate(pos.x, pos.y);
     ctx.rotate(heading);
