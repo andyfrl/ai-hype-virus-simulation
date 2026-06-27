@@ -54,8 +54,8 @@ function buildPassengers(): TechBro[] {
   return R.map(
     (i: number): TechBro => ({
       id: i,
-      offsetX: -14 - i * 7,
-      offsetY: randomRange(-4, 4),
+      offsetX: -6 + i * 3,
+      offsetY: randomRange(-2, 2),
       emoji: emojis[i % emojis.length],
     }),
     R.range(0, 5)
@@ -318,27 +318,56 @@ function spawnExhaust(state: GameState): Particle[] {
   const alive = R.filter((p: Particle) => p.life > 0, state.particles);
 
   if (rocket.phase !== 1) return alive;
-  if (!state.rocketInput.thrust) return alive;
   if (rocket.exhaustTimer % EXHAUST_INTERVAL !== 0) return alive;
 
-  const back = rocket.heading + Math.PI;
-  const spread = 0.5;
-  const newParticles: Particle[] = R.map(
-    (_: number): Particle => ({
-      pos: vec2(
-        rocket.pos.x + Math.cos(back) * 8 + randomRange(-2, 2),
-        rocket.pos.y + Math.sin(back) * 8 + randomRange(-2, 2)
-      ),
-      vel: vec2(
-        Math.cos(back + randomRange(-spread, spread)) * randomRange(1, 3),
-        Math.sin(back + randomRange(-spread, spread)) * randomRange(1, 3)
-      ),
-      life: 1,
-      color: Math.random() > 0.5 ? '#ff9500' : '#ff4400',
-      size: randomRange(2, 5),
-    }),
-    R.range(0, 4)
-  );
+  const { thrust, brake } = state.rocketInput;
+  if (!thrust && !brake) return alive;
+
+  const newParticles: Particle[] = [];
+
+  if (thrust) {
+    const back = rocket.heading + Math.PI;
+    const spread = 0.5;
+    const exhaust: Particle[] = R.map(
+      (_: number): Particle => ({
+        pos: vec2(
+          rocket.pos.x + Math.cos(back) * 24 + randomRange(-2, 2),
+          rocket.pos.y + Math.sin(back) * 24 + randomRange(-2, 2)
+        ),
+        vel: vec2(
+          Math.cos(back + randomRange(-spread, spread)) * randomRange(1, 3),
+          Math.sin(back + randomRange(-spread, spread)) * randomRange(1, 3)
+        ),
+        life: 1,
+        color: Math.random() > 0.5 ? '#ff9500' : '#ff4400',
+        size: randomRange(2, 5),
+      }),
+      R.range(0, 4)
+    );
+    newParticles.push(...exhaust);
+  }
+
+  if (brake) {
+    const forward = rocket.heading;
+    const spread = 0.3;
+    const rcs: Particle[] = R.map(
+      (_: number): Particle => ({
+        pos: vec2(
+          rocket.pos.x + Math.cos(forward) * 18 + randomRange(-1, 1),
+          rocket.pos.y + Math.sin(forward) * 18 + randomRange(-1, 1)
+        ),
+        vel: vec2(
+          Math.cos(forward + randomRange(-spread, spread)) * randomRange(0.8, 2),
+          Math.sin(forward + randomRange(-spread, spread)) * randomRange(0.8, 2)
+        ),
+        life: 0.6,
+        color: Math.random() > 0.5 ? '#88ccff' : '#c0e8ff',
+        size: randomRange(1, 2.5),
+      }),
+      R.range(0, 2)
+    );
+    newParticles.push(...rcs);
+  }
 
   return [...alive, ...newParticles];
 }
@@ -354,7 +383,7 @@ function tickParticles(particles: Particle[]): Particle[] {
         ...p,
         pos: vec2(p.pos.x + p.vel.x, p.pos.y + p.vel.y),
         vel: vec2(p.vel.x * 0.95, p.vel.y * 0.95),
-        life: p.life - 0.025,
+        life: p.life - (p.decay ?? 0.025),
         size: p.size * 0.97,
       }),
       particles
@@ -400,6 +429,44 @@ function tickViruses(viruses: Virus[], planets: [Planet, Planet]): Virus[] {
   );
 }
 
+// ── Explosion burst ───────────────────────────────────────────────────────────
+
+function spawnExplosion(pos: Vec2): Particle[] {
+  // Core: slow, large, white-hot — creates the intense bright centre
+  const core: Particle[] = R.map(
+    (_: number): Particle => {
+      const angle = Math.random() * Math.PI * 2;
+      return {
+        pos: vec2(pos.x + randomRange(-2, 2), pos.y + randomRange(-2, 2)),
+        vel: vec2(Math.cos(angle) * randomRange(0.05, 0.6), Math.sin(angle) * randomRange(0.05, 0.6)),
+        life: 1,
+        color: Math.random() > 0.4 ? '#ffffff' : '#ffee88',
+        size: randomRange(14, 24),
+        decay: 0.014,
+      };
+    },
+    R.range(0, 20)
+  );
+
+  // Debris: faster but small and tight — edgy ring around the centre
+  const debris: Particle[] = R.map(
+    (_: number): Particle => {
+      const angle = Math.random() * Math.PI * 2;
+      return {
+        pos: vec2(pos.x + randomRange(-3, 3), pos.y + randomRange(-3, 3)),
+        vel: vec2(Math.cos(angle) * randomRange(0.4, 2.5), Math.sin(angle) * randomRange(0.4, 2.5)),
+        life: 1,
+        color: Math.random() > 0.5 ? '#ff4400' : '#ff8800',
+        size: randomRange(1.5, 4),
+        decay: 0.014,
+      };
+    },
+    R.range(0, 50)
+  );
+
+  return [...core, ...debris];
+}
+
 // ── HUD phase label ───────────────────────────────────────────────────────────
 
 function computePhaseLabel(state: GameState): string {
@@ -428,7 +495,11 @@ export function stepState(state: GameState): GameState {
   const [infEarth, infMars] = updateInfection([earth, mars], rocket, state.tick);
 
   const viruses   = tickViruses(spawnViruses({ ...state, planets: [infEarth, infMars], rocket }), [infEarth, infMars]);
-  const particles = tickParticles(spawnExhaust({ ...state, rocket }));
+  const exhausted = spawnExhaust({ ...state, rocket });
+  const exploded  = (rocket.phase === 4 && state.rocket.phase !== 4)
+    ? [...exhausted, ...spawnExplosion(rocket.pos)]
+    : exhausted;
+  const particles = tickParticles(exploded);
 
   const victoryAchieved = infEarth.infectionLevel >= 1 && infMars.infectionLevel >= 0.99;
 

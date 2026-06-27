@@ -173,75 +173,138 @@ export function drawApproachRings(ctx: CanvasRenderingContext2D, state: GameStat
 
 export function drawRocket(ctx: CanvasRenderingContext2D, state: GameState): void {
   const { rocket } = state;
-  const { pos, heading } = rocket;
-  const crashed = rocket.phase === 4;
+  const { pos, heading, phase } = rocket;
+  const crashed   = phase === 4;
+  const flying    = phase === 1;
+  const thrusting = flying && state.rocketInput.thrust;
+  const braking   = flying && state.rocketInput.brake;
 
   ctx.save();
-  if (crashed) ctx.globalAlpha = 0.45;
+  if (crashed) ctx.globalAlpha = 0.4;
   ctx.translate(pos.x, pos.y);
   ctx.rotate(heading);
 
-  ctx.beginPath();
-  ctx.moveTo(18, 0);
-  ctx.lineTo(-8, -7);
-  ctx.lineTo(-14, 0);
-  ctx.lineTo(-8, 7);
-  ctx.closePath();
-  ctx.fillStyle = crashed ? '#888' : '#e8e8e8';
-  ctx.fill();
-  ctx.strokeStyle = '#888';
-  ctx.lineWidth = 0.8;
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(18, 0);
-  ctx.lineTo(10, -4);
-  ctx.lineTo(10, 4);
-  ctx.closePath();
-  ctx.fillStyle = crashed ? '#555' : '#f00';
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.arc(2, 0, 4, 0, Math.PI * 2);
-  ctx.fillStyle = crashed ? '#446' : '#4af';
-  ctx.fill();
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 0.8;
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(-8, -7);
-  ctx.lineTo(-16, -14);
-  ctx.lineTo(-14, -7);
-  ctx.fillStyle = crashed ? '#444' : '#c00';
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.moveTo(-8, 7);
-  ctx.lineTo(-16, 14);
-  ctx.lineTo(-14, 7);
-  ctx.fillStyle = crashed ? '#444' : '#c00';
-  ctx.fill();
-
-  // Thrust flame
-  if (rocket.phase === 1 && state.rocketInput.thrust) {
-    const flameLen = 8 + Math.random() * 6;
+  // ── Main engine flame (behind body) ──────────────────────────────────────
+  if (thrusting) {
+    const fl = 12 + Math.random() * 10;
     ctx.beginPath();
-    ctx.moveTo(-14, -3);
-    ctx.lineTo(-14 - flameLen, 0);
-    ctx.lineTo(-14, 3);
+    ctx.moveTo(-22, -5);
+    ctx.lineTo(-22 - fl, 0);
+    ctx.lineTo(-22, 5);
     ctx.closePath();
-    ctx.fillStyle = `rgba(255, ${120 + Math.random() * 80 | 0}, 0, 0.85)`;
+    ctx.fillStyle = `rgba(255,${(60 + Math.random() * 80) | 0},0,0.88)`;
     ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-22, -2.5);
+    ctx.lineTo(-22 - fl * 0.55, 0);
+    ctx.lineTo(-22, 2.5);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,240,180,0.95)';
+    ctx.fill();
+  }
+
+  // ── Nozzle bell ───────────────────────────────────────────────────────────
+  ctx.beginPath();
+  ctx.moveTo(-14, -2.5);
+  ctx.lineTo(-22, -5);
+  ctx.lineTo(-22,  5);
+  ctx.lineTo(-14,  2.5);
+  ctx.closePath();
+  ctx.fillStyle = crashed ? '#2a2a2a' : '#3a3a3a';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-14, -1.5);
+  ctx.lineTo(-20, -3.5);
+  ctx.lineTo(-20,  3.5);
+  ctx.lineTo(-14,  1.5);
+  ctx.closePath();
+  ctx.fillStyle = thrusting ? 'rgba(255,180,60,0.7)' : (crashed ? '#111' : '#1a1a1a');
+  ctx.fill();
+
+  // ── Engine skirt ──────────────────────────────────────────────────────────
+  ctx.fillStyle = crashed ? '#333' : '#4a4a4a';
+  ctx.fillRect(-14, -4, 3, 8);
+
+  // ── Aft body flaps ────────────────────────────────────────────────────────
+  ctx.fillStyle = crashed ? '#333' : '#606060';
+  ctx.beginPath();
+  ctx.moveTo(-4, -4); ctx.lineTo(-11, -4); ctx.lineTo(-14, -13); ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-4,  4); ctx.lineTo(-11,  4); ctx.lineTo(-14,  13); ctx.closePath();
+  ctx.fill();
+
+  // ── Main body (stainless steel gradient) ─────────────────────────────────
+  const steel = ctx.createLinearGradient(0, -5, 0, 5);
+  steel.addColorStop(0,   crashed ? '#999' : '#e4e4e4');
+  steel.addColorStop(0.4, crashed ? '#777' : '#c8c8c8');
+  steel.addColorStop(1,   crashed ? '#555' : '#8a8a8a');
+  ctx.beginPath();
+  ctx.roundRect(-11, -4, 25, 8, 1.5);
+  ctx.fillStyle = crashed ? '#777' : steel;
+  ctx.fill();
+  ctx.strokeStyle = crashed ? '#555' : '#aaa';
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+
+  // ── Heat-tile band (dark lower strip) ────────────────────────────────────
+  if (!crashed) {
+    ctx.beginPath();
+    ctx.roundRect(-11, 1.5, 25, 2.5, [0, 0, 1.5, 1.5]);
+    ctx.fillStyle = 'rgba(40,40,40,0.45)';
+    ctx.fill();
+  }
+
+  // ── Forward canards ───────────────────────────────────────────────────────
+  ctx.fillStyle = crashed ? '#444' : '#909090';
+  ctx.beginPath();
+  ctx.moveTo(9, -4); ctx.lineTo(5, -4); ctx.lineTo(4, -9); ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(9,  4); ctx.lineTo(5,  4); ctx.lineTo(4,  9); ctx.closePath();
+  ctx.fill();
+
+  // ── Nose dome ─────────────────────────────────────────────────────────────
+  ctx.beginPath();
+  ctx.moveTo(14, -4);
+  ctx.quadraticCurveTo(20, -4, 22, 0);
+  ctx.quadraticCurveTo(20,  4, 14, 4);
+  ctx.closePath();
+  ctx.fillStyle = crashed ? '#666' : '#d4d4d4';
+  ctx.fill();
+  ctx.strokeStyle = crashed ? '#444' : '#aaa';
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+
+  // ── Specular highlight ────────────────────────────────────────────────────
+  if (!crashed) {
+    ctx.beginPath();
+    ctx.roundRect(-9, -3.5, 21, 2, 1);
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.fill();
+  }
+
+  // ── Forward RCS jets ──────────────────────────────────────────────────────
+  if (braking) {
+    const jl = 6 + Math.random() * 5;
+    const a  = (0.6 + Math.random() * 0.35).toFixed(2);
+    const c  = `rgba(140,210,255,${a})`;
+    ctx.beginPath();
+    ctx.moveTo(18, -3); ctx.lineTo(18 + jl, -3 - jl * 0.5); ctx.lineTo(18 + jl * 0.8, -3);
+    ctx.closePath(); ctx.fillStyle = c; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(18,  3); ctx.lineTo(18 + jl,  3 + jl * 0.5); ctx.lineTo(18 + jl * 0.8,  3);
+    ctx.closePath(); ctx.fillStyle = c; ctx.fill();
   }
 
   ctx.restore();
 
-  if (rocket.phase === 1 || rocket.phase === 0 || rocket.phase === 3) {
+  // ── Passengers ────────────────────────────────────────────────────────────
+  if (!crashed) {
     ctx.save();
     ctx.translate(pos.x, pos.y);
     ctx.rotate(heading);
-    ctx.font = '9px serif';
+    ctx.font = '7px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (const bro of rocket.passengers) {

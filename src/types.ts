@@ -62,6 +62,8 @@ export interface Particle {
   life: number;   // 0–1
   color: string;
   size: number;
+  /** Life reduction per frame. Defaults to 0.025 (~40 frames at 60fps). */
+  decay?: number;
 }
 
 export interface Virus {
