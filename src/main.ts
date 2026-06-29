@@ -5,7 +5,7 @@ import { map } from 'rxjs/operators';
 import { createInitialState, stepState, MAX_FUEL } from './simulation';
 import { render, getPlanetHitRadius, largeDetailRadius } from './renderer';
 import { loadGeoData, loadMarsGeoData } from './geo';
-import { initSidebar, SIDEBAR_WIDTH } from './sidebar';
+import { initSidebar, setSidebarVisible, SIDEBAR_WIDTH } from './sidebar';
 import type { GameState, UIState } from './types';
 
 // ── Canvas setup ──────────────────────────────────────────────────────────────
@@ -13,13 +13,15 @@ import type { GameState, UIState } from './types';
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
 
+let activeSidebarWidth = 0;
+
 function resize(): void {
-  canvas.width  = window.innerWidth - SIDEBAR_WIDTH;
+  canvas.width  = window.innerWidth - activeSidebarWidth;
   canvas.height = window.innerHeight;
 }
-resize();
 
-initSidebar();
+initSidebar(); // hides sidebar on init
+resize();
 
 // ── Simulation state ──────────────────────────────────────────────────────────
 
@@ -36,6 +38,15 @@ const ui: UIState = {
   marsRotation:    [-134, -18], // centre on Olympus Mons region
   mousePos:        { x: -999, y: -999 },
 };
+
+function selectPlanet(id: UIState['selectedPlanet']): void {
+  ui.selectedPlanet = id;
+  const show = id !== null;
+  setSidebarVisible(show);
+  activeSidebarWidth = show ? SIDEBAR_WIDTH : 0;
+  resize();
+  state = { ...state, width: canvas.width, height: canvas.height };
+}
 
 // ── Geo data ──────────────────────────────────────────────────────────────────
 
@@ -135,14 +146,14 @@ canvas.addEventListener('click', (e) => {
   if (ui.selectedPlanet) {
     // Back button: top-left area (x 16–126, y 16–44)
     if (mx >= 16 && mx <= 126 && my >= 16 && my <= 44) {
-      ui.selectedPlanet = null;
+      selectPlanet(null);
       return;
     }
     // Click outside the large sphere → deselect
     const r = largeDetailRadius(canvas.width, canvas.height);
     const cx = canvas.width / 2, cy = canvas.height / 2;
     if (Math.hypot(mx - cx, my - cy) > r + 20) {
-      ui.selectedPlanet = null;
+      selectPlanet(null);
     }
     return;
   }
@@ -151,7 +162,7 @@ canvas.addEventListener('click', (e) => {
   for (const planet of state.planets) {
     const d = Math.hypot(mx - planet.screenPos.x, my - planet.screenPos.y);
     if (d < getPlanetHitRadius(planet)) {
-      ui.selectedPlanet = planet.id;
+      selectPlanet(planet.id);
       return;
     }
   }
@@ -196,7 +207,7 @@ function updateHUD(s: GameState, uiState: UIState): void {
 const keysHeld = new Set<string>();
 
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { ui.selectedPlanet = null; return; }
+  if (e.key === 'Escape') { selectPlanet(null); return; }
   if (e.key === 'r' || e.key === 'R') {
     if (state.rocket.phase === 4) {
       state = createInitialState(canvas.width, canvas.height);

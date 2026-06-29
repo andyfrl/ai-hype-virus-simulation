@@ -26,6 +26,11 @@ const BUILDINGS: TileData[] = [
 
 const CREW: TileData[] = CREW_MEMBERS.map(m => ({ id: m.id, icon: '', image: m.image, name: m.name, cost: m.cost }));
 
+export function setSidebarVisible(visible: boolean): void {
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar) sidebar.style.display = visible ? 'flex' : 'none';
+}
+
 export function initSidebar(): SidebarState {
   const state: SidebarState = { mode: 'build', selectedTile: null };
 
@@ -74,5 +79,6 @@ export function initSidebar(): SidebarState {
   });
 
   renderTiles();
+  setSidebarVisible(false);
   return state;
 }
