@@ -2,7 +2,7 @@ import './styles/modal.css';
 import { CREW_MEMBERS } from './data/crew';
 
 const CREW_CONFIGS = Object.fromEntries(
-  CREW_MEMBERS.map(m => [m.id, { image: m.image, alt: m.name, quotes: m.quotes }])
+  CREW_MEMBERS.map(m => [m.id, { image: m.image, alt: m.name, quotes: m.quotes, perks: m.perks }])
 );
 
 function nextQuote(remaining: Set<string>): string | null {
@@ -39,9 +39,18 @@ export function showCrewModal(crewId: string, onHire: () => void): void {
   const chat      = document.getElementById('crew-chat')!;
   const btnHire   = document.getElementById('crew-btn-hire')!;
   const btnCancel = document.getElementById('crew-btn-cancel')!;
+  const perksEl   = document.getElementById('crew-modal-perks')!;
 
   img.src = config.image;
   img.alt = config.alt;
+
+  perksEl.innerHTML = config.perks.map(p => `
+    <div class="perk ${p.type}">
+      <span class="perk-sign">${p.type === 'positive' ? '+' : '−'}</span>
+      <span class="perk-label">${p.label}</span>
+      <span class="perk-desc">${p.description}</span>
+    </div>
+  `).join('');
 
   const remaining = new Set<string>(config.quotes);
   let timer: ReturnType<typeof setTimeout> | null = null;

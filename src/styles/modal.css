@@ -15,7 +15,7 @@
   width: 52vw;
   height: 52vh;
   min-width: 520px;
-  min-height: 360px;
+  min-height: 420px;
   background: #18180a;
   border: 2px solid #5a4a18;
   box-shadow:
@@ -160,3 +160,41 @@
   border-color: #3a3010;
 }
 .modal-btn.cancel:hover { background: #2e2e16; color: #c8a840; }
+
+/* ── Perks ────────────────────────────────────────────────────────────────── */
+#crew-modal-perks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 14px 12px;
+  border-top: 1px solid #2a2810;
+}
+
+.perk {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  border-left: 3px solid;
+  font-family: monospace;
+  font-size: 11px;
+  background: rgba(0,0,0,0.25);
+}
+.perk.positive { border-color: #3a7a20; color: #6ec840; }
+.perk.negative { border-color: #7a2020; color: #e05050; }
+
+.perk-sign {
+  font-weight: bold;
+  font-size: 13px;
+  line-height: 1;
+}
+.perk-label {
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+.perk-desc {
+  opacity: 0.65;
+  font-size: 10px;
+}
