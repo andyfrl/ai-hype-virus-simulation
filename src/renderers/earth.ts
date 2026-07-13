@@ -13,7 +13,7 @@ function drawEarthDetail(
   const cx = width / 2;
   const cy = height / 2;
   const radius = Math.min(width, height) * 0.38;
-  const rot = ui.earthRotation;
+  const rot = ui.rotations.earth;
 
   const projection = d3.geoOrthographic()
     .scale(radius)

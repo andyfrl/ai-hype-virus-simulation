@@ -5,9 +5,14 @@ export interface Vec2 {
   y: number;
 }
 
+/** Extend this union when adding a new planet */
+export type PlanetId = 'earth' | 'mars';
+
 export interface Planet {
-  id: 'earth' | 'mars';
+  id: PlanetId;
   label: string;
+  /** Emoji used in the HUD readout */
+  emoji: string;
   /** Orbital radius in AU-screen units */
   orbitRadius: number;
   /** Current orbital angle (radians) */
@@ -24,6 +29,10 @@ export interface Planet {
   screenPos: Vec2;
   /** Infection fraction 0–1 */
   infectionLevel: number;
+  /** Base infection growth per frame while visited (boosted while the rocket is docked) */
+  infectionRate: number;
+  /** True once the rocket has docked here — infection only grows on visited planets */
+  visited: boolean;
   /** Pseudo-3D rotation angle (for geo projection sphere) */
   rotation: number;
   /** Rotation velocity (rad/frame) */
@@ -39,13 +48,24 @@ export interface TechBro {
   emoji: string;
 }
 
+// ── Rocket phase constants ────────────────────────────────────────────────────
+
+export const RocketPhase = {
+  Docked: 'docked',
+  Flight: 'flight',
+  Crashed: 'crashed',
+} as const;
+
+export type RocketPhase = (typeof RocketPhase)[keyof typeof RocketPhase];
+
 export interface Rocket {
   /** Current world position */
   pos: Vec2;
   /** Velocity vector */
   vel: Vec2;
-  /** 0=docked on Earth, 1=in flight, 3=docked on Mars, 4=crashed */
-  phase: 0 | 1 | 3 | 4;
+  phase: RocketPhase;
+  /** Planet the rocket is docked on (only when phase === Docked) */
+  dockedOn: PlanetId | null;
   /** Passengers */
   passengers: TechBro[];
   /** Heading angle (radians, 0 = right) */
@@ -70,7 +90,7 @@ export interface Virus {
   pos: Vec2;
   vel: Vec2;
   life: number;
-  planet: 'earth' | 'mars';
+  planet: PlanetId;
 }
 
 export interface RocketInput {
@@ -84,7 +104,7 @@ export interface RocketInput {
 
 export interface GameState {
   tick: number;
-  planets: [Planet, Planet];   // [earth, mars]
+  planets: Planet[];
   rocket: Rocket;
   particles: Particle[];
   viruses: Virus[];
@@ -116,15 +136,14 @@ export interface SidebarState {
 
 export interface UIState {
   /** Currently selected planet, or null */
-  selectedPlanet: 'earth' | 'mars' | null;
+  selectedPlanet: PlanetId | null;
   /** True while mouse button is held on the large planet */
   isDragging: boolean;
   /** True once the drag has moved > 4px (suppresses click-to-deselect) */
   hasDragged: boolean;
   dragStart: { x: number; y: number } | null;
   /** Independent interactive rotation per planet — [lambda, phi] in degrees */
-  earthRotation: [number, number];
-  marsRotation: [number, number];
+  rotations: Record<PlanetId, [number, number]>;
   /** Current mouse canvas position (for hover cursor changes) */
   mousePos: { x: number; y: number };
 }

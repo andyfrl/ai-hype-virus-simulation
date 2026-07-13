@@ -82,7 +82,7 @@ function drawMarsDetail(
   const cx = width / 2;
   const cy = height / 2;
   const radius = Math.min(width, height) * 0.38;
-  const rot = ui.marsRotation;
+  const rot = ui.rotations.mars;
 
   const projection = d3.geoOrthographic()
     .scale(radius)

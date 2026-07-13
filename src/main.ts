@@ -2,11 +2,12 @@ import './styles/base.css';
 import './styles/hud.css';
 import { animationFrameScheduler, interval } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { createInitialState, stepState, MAX_FUEL } from './simulation';
+import { createInitialState, stepState, MAX_FUEL, WIN_INFECTION_THRESHOLD } from './simulation';
 import { render, getPlanetHitRadius, largeDetailRadius } from './renderer';
 import { loadGeoData, loadMarsGeoData } from './geo';
 import { initSidebar, setSidebarVisible, SIDEBAR_WIDTH } from './sidebar';
 import type { GameState, UIState } from './types';
+import { RocketPhase } from './types';
 
 // ── Canvas setup ──────────────────────────────────────────────────────────────
 
@@ -34,8 +35,10 @@ const ui: UIState = {
   isDragging:      false,
   hasDragged:      false,
   dragStart:       null,
-  earthRotation:   [-10, -20],  // show Europe/Africa on first open
-  marsRotation:    [-134, -18], // centre on Olympus Mons region
+  rotations: {
+    earth: [-10, -20],  // show Europe/Africa on first open
+    mars:  [-134, -18], // centre on Olympus Mons region
+  },
   mousePos:        { x: -999, y: -999 },
 };
 
@@ -103,10 +106,8 @@ canvas.addEventListener('mousemove', (e) => {
       const r = largeDetailRadius(canvas.width, canvas.height);
       const sens = 180 / (2 * r);
 
-      if (ui.selectedPlanet === 'earth') {
-        ui.earthRotation[0] -= dx * sens;
-      } else if (ui.selectedPlanet === 'mars') {
-        ui.marsRotation[0] -= dx * sens;
+      if (ui.selectedPlanet) {
+        ui.rotations[ui.selectedPlanet][0] -= dx * sens;
       }
       ui.dragStart = { x: mx, y: my };
     }
@@ -184,21 +185,24 @@ function updateHUD(s: GameState, uiState: UIState): void {
     return;
   }
 
-  const [earth, mars] = s.planets;
   const classFor = (lvl: number) => lvl > 0.7 ? 'danger' : lvl > 0.35 ? 'warn' : '';
   const fuelPct = Math.round((s.rocket.fuel / MAX_FUEL) * 100);
   const fuelClass = fuelPct < 20 ? 'danger' : fuelPct < 40 ? 'warn' : '';
   const speed = Math.sqrt(s.rocket.vel.x ** 2 + s.rocket.vel.y ** 2).toFixed(2);
 
+  const planetRows = s.planets.map(p => `
+    <div class="${classFor(p.infectionLevel)}">${p.emoji} ${p.label}: ${
+      p.visited ? `${(p.infectionLevel * 100).toFixed(1)}%` : 'not visited'
+    }</div>`).join('');
+
   hud.innerHTML = `
     <div>☣ AI HYPE VIRUS OUTBREAK</div>
-    <div>Tick: ${s.tick}</div>
-    <div class="${classFor(earth.infectionLevel)}">🌍 Earth: ${(earth.infectionLevel * 100).toFixed(1)}%</div>
-    <div class="${classFor(mars.infectionLevel)}">🔴 Mars: ${(mars.infectionLevel * 100).toFixed(1)}%</div>
+    <div>Goal: infect all planets to ${WIN_INFECTION_THRESHOLD * 100}%</div>
+    ${planetRows}
     <div class="${fuelClass}">⛽ Fuel: ${fuelPct}%</div>
-    ${s.rocket.phase === 1 ? `<div>Speed: ${speed} px/f</div>` : ''}
+    ${s.rocket.phase === RocketPhase.Flight ? `<div>Speed: ${speed} px/f</div>` : ''}
     <div>${s.phase}</div>
-    ${s.rocket.phase === 4 ? '<div class="danger">Press R to restart</div>' : ''}
+    ${s.rocket.phase === RocketPhase.Crashed ? '<div class="danger">Press R to restart</div>' : ''}
   `.trim();
 }
 
@@ -209,7 +213,7 @@ const keysHeld = new Set<string>();
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { selectPlanet(null); return; }
   if (e.key === 'r' || e.key === 'R') {
-    if (state.rocket.phase === 4) {
+    if (state.rocket.phase === RocketPhase.Crashed) {
       state = createInitialState(canvas.width, canvas.height);
     }
     return;

@@ -1,6 +1,8 @@
 import * as d3 from 'd3';
 import * as R from 'ramda';
 import type { GameState, Planet, Particle, Virus, Vec2 } from '../types';
+import { RocketPhase } from '../types';
+import { LANDING_PAD, isSafeLandingApproach } from '../simulation';
 import { lerpColor } from '../utils/color';
 
 interface Star { x: number; y: number; r: number; a: number }
@@ -64,7 +66,7 @@ export function drawOrbitRing(ctx: CanvasRenderingContext2D, cx: number, cy: num
 }
 
 export function drawPlanet(ctx: CanvasRenderingContext2D, planet: Planet, isHovered: boolean): void {
-  const { screenPos: { x, y }, radius, rotation, infectionLevel, glowColor, id } = planet;
+  const { screenPos: { x, y }, radius, rotation, infectionLevel, glowColor, color: baseColor } = planet;
 
   const glowRadius = isHovered ? radius * 2.2 : radius * 1.8;
   const grd = ctx.createRadialGradient(x, y, radius * 0.7, x, y, glowRadius);
@@ -87,7 +89,6 @@ export function drawPlanet(ctx: CanvasRenderingContext2D, planet: Planet, isHove
     x - radius * 0.3, y - radius * 0.3, radius * 0.05,
     x, y, radius
   );
-  const baseColor = id === 'earth' ? '#1a6bcc' : '#c1440e';
   baseFill.addColorStop(0, lerpColor(baseColor, '#ffffff', 0.25));
   baseFill.addColorStop(0.6, baseColor);
   baseFill.addColorStop(1, lerpColor(baseColor, '#000000', 0.5));
@@ -152,19 +153,28 @@ export function drawPlanet(ctx: CanvasRenderingContext2D, planet: Planet, isHove
 
 export function drawApproachRings(ctx: CanvasRenderingContext2D, state: GameState): void {
   const { rocket, planets } = state;
-  if (rocket.phase !== 1) return;
+  if (rocket.phase !== RocketPhase.Flight) return;
 
   for (const planet of planets) {
     const d = Math.sqrt((rocket.pos.x - planet.screenPos.x) ** 2 + (rocket.pos.y - planet.screenPos.y) ** 2);
-    const approachRadius = planet.radius * 4;
+    const approachRadius = planet.radius * 8;
     if (d > approachRadius) continue;
 
     ctx.save();
     ctx.beginPath();
     ctx.arc(planet.screenPos.x, planet.screenPos.y, approachRadius, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255, 220, 80, 0.4)';
+    ctx.strokeStyle = 'rgba(140, 200, 255, 0.35)';
     ctx.lineWidth = 1;
-    ctx.setLineDash([4, 6]);
+    ctx.setLineDash([4, 8]);
+    ctx.stroke();
+
+    // Landing radius: seafoam when speed + nozzle alignment would dock, coral when it would crash
+    const safe = isSafeLandingApproach(rocket, planet);
+    ctx.beginPath();
+    ctx.arc(planet.screenPos.x, planet.screenPos.y, planet.radius + LANDING_PAD, 0, Math.PI * 2);
+    ctx.strokeStyle = safe ? 'rgba(120, 235, 210, 0.8)' : 'rgba(255, 140, 130, 0.75)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 4]);
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.restore();
@@ -174,8 +184,8 @@ export function drawApproachRings(ctx: CanvasRenderingContext2D, state: GameStat
 export function drawRocket(ctx: CanvasRenderingContext2D, state: GameState): void {
   const { rocket } = state;
   const { pos, heading, phase } = rocket;
-  const crashed   = phase === 4;
-  const flying    = phase === 1;
+  const crashed   = phase === RocketPhase.Crashed;
+  const flying    = phase === RocketPhase.Flight;
   const thrusting = flying && state.rocketInput.thrust;
   const braking   = flying && state.rocketInput.brake;
 

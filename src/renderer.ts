@@ -33,8 +33,9 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState, ui: UISt
   drawStars(ctx, width, height, tick);
   drawSun(ctx, sunPos, tick);
 
-  drawOrbitRing(ctx, sunPos.x, sunPos.y, state.planets[0].orbitRadius);
-  drawOrbitRing(ctx, sunPos.x, sunPos.y, state.planets[1].orbitRadius);
+  for (const planet of state.planets) {
+    drawOrbitRing(ctx, sunPos.x, sunPos.y, planet.orbitRadius);
+  }
 
   drawParticles(ctx, state.particles);
 
